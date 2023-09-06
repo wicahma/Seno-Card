@@ -484,6 +484,46 @@ class _UserPageState extends State<UserPage> {
                               )),
                         ],
                       ),
+                      const SizedBox(
+                        height: 20,
+                      ),
+                      const Text(
+                        "Pengaturan akun",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 15,
+                      ),
+                      ListTile(
+                        onTap: null,
+                        splashColor: Colors.grey.shade900,
+                        leading: const Icon(Icons.account_circle),
+                        title: const Text("Akun terhubung"),
+                        trailing: Card(
+                          elevation: 0,
+                          color: Colors.orangeAccent.shade100,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 3),
+                            child: Text(
+                              "email",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                      ListTile(
+                        onTap: () {
+                          return;
+                        },
+                        iconColor: Colors.red,
+                        textColor: Colors.red,
+                        leading: const Icon(Icons.logout_rounded),
+                        title: const Text("Logout akun"),
+                      ),
                     ],
                   ),
                 ),
