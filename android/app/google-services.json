@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "284095252361",
+    "project_id": "seno-card",
+    "storage_bucket": "seno-card.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:284095252361:android:1579f1c75fb44906ff0358",
+        "android_client_info": {
+          "package_name": "com.example.seno_card"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCw-c83zlasc67kaBMFmT8M5QcQMCjGV_c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

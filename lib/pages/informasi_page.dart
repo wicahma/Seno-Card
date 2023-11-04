@@ -18,7 +18,13 @@ class _InformasiPageState extends State<InformasiPage> {
           shadowColor: Colors.black.withOpacity(0.3),
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
-          leading: const BackBtn(),
+          leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: const Icon(
+                Icons.home_rounded,
+                size: 30,
+                color: Color.fromRGBO(177, 121, 184, 1),
+              )),
           shape: const RoundedRectangleBorder(
               borderRadius:
                   BorderRadius.vertical(bottom: Radius.elliptical(20, 20))),

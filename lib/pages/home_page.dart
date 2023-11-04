@@ -1,10 +1,17 @@
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:seno_card/components/bases/base_comp.dart';
 import 'package:seno_card/components/bases/setting_comp.dart';
+import 'package:seno_card/components/logic/game_logic.dart';
+import 'package:seno_card/components/logic/storage_logic.dart';
 import 'package:seno_card/pages/game_page.dart';
+import 'package:seno_card/pages/game_result_page.dart';
 import 'package:seno_card/pages/informasi_page.dart';
 import 'package:seno_card/pages/jurnal_page.dart';
+import 'package:seno_card/pages/login_page.dart';
 import 'package:seno_card/pages/user_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,6 +23,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _animationController;
+  User? user = FirebaseAuth.instance.currentUser;
+
   @override
   void initState() {
     super.initState();
@@ -23,6 +32,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(seconds: 5),
       vsync: this,
     )..repeat();
+    getUserData();
+  }
+
+  void getUserData() {
+    if (user == null) {
+      Future(() => Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false));
+    }
   }
 
   @override
@@ -124,10 +143,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 height: 13,
               ),
               TextButton(
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const GamePage())),
+                  onPressed: () {
+                    var getQuestion = GameLogic();
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => GamePage(
+                                  questionNumber: 1,
+                                  selectedCard: "merah",
+                                  questionList: getQuestion.getQuestionList(),
+                                )));
+                  },
                   style: const ButtonStyle(
                       shape: MaterialStatePropertyAll(RoundedRectangleBorder(
                           borderRadius: BorderRadius.all(Radius.circular(11)))),
@@ -142,28 +168,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           fontSize: 27, fontFamily: 'AkayaTelivigala'),
                     ),
                   )),
-              const SizedBox(
-                height: 13,
-              ),
-              TextButton(
-                  onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const InformasiPage())),
-                  style: const ButtonStyle(
-                      shape: MaterialStatePropertyAll(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(11)))),
-                      foregroundColor: MaterialStatePropertyAll(Colors.white),
-                      backgroundColor: MaterialStatePropertyAll(
-                          Color.fromRGBO(255, 195, 73, 1))),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 15, vertical: 0),
-                    child: Text(
-                      'Informasi',
-                      style: TextStyle(
-                          fontSize: 23, fontFamily: 'AkayaTelivigala'),
-                    ),
-                  ))
             ],
           )),
     );

@@ -1,8 +1,13 @@
+import 'dart:convert';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:seno_card/components/bases/base_comp.dart';
+import 'package:seno_card/components/logic/storage_logic.dart';
 import 'package:seno_card/components/micros/back_button.dart';
 import 'package:seno_card/components/micros/clipper_profile.dart';
+import 'package:seno_card/pages/login_page.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -14,6 +19,9 @@ class UserPage extends StatefulWidget {
 class _UserPageState extends State<UserPage> {
   bool _profile = false, password = false, rePassword = false;
   List<String> list = <String>['Laki laki', 'Perempuan'];
+  String uid = "";
+  bool loading = false;
+  User? user = FirebaseAuth.instance.currentUser;
 
   final TextEditingController _namaController = TextEditingController(),
       _noHpController = TextEditingController(),
@@ -21,6 +29,116 @@ class _UserPageState extends State<UserPage> {
       _birthDateController = TextEditingController(),
       _passwordController = TextEditingController(),
       _confirmPasswordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    bool isLoggedIn = getUserData();
+    if (!isLoggedIn) return;
+    uid = user!.uid;
+    setBaseData();
+  }
+
+  Future<void> setBaseData() async {
+    if (!context.mounted) return;
+    Map<String, dynamic> user =
+        jsonDecode(await StorageLogic().getData(key: 'user-data') ?? '{}');
+    setState(() {
+      _namaController.text = user['nama'] ?? "None";
+      _noHpController.text = user['noHp'] ?? "";
+      _genderController.text = user['gender'] ?? "";
+      _birthDateController.text = user['birthDate'] ?? "";
+    });
+  }
+
+  bool getUserData() {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      Future(() => Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false));
+      debugPrint("ada datanya");
+      return false;
+    }
+    debugPrint(user.toString());
+    debugPrint("gaada datanya");
+    return true;
+  }
+
+  Future<void> updateFirebasePassword() async {
+    setState(() {
+      loading = true;
+    });
+    try {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            backgroundColor: Colors.redAccent,
+            dismissDirection: DismissDirection.none,
+            showCloseIcon: true,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+            duration: Duration(milliseconds: 500),
+            content: Text("Password harus sama!")));
+        return;
+      }
+
+      Map<String, dynamic> credential =
+          jsonDecode(await StorageLogic().getData(key: 'user'));
+      await user!.reauthenticateWithCredential(EmailAuthProvider.credential(
+          email: credential['email'] ?? "",
+          password: credential['password'] ?? ""));
+      await user!.updatePassword(_passwordController.text);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          dismissDirection: DismissDirection.none,
+          backgroundColor: Colors.green.shade700,
+          showCloseIcon: true,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+          duration: const Duration(milliseconds: 2000),
+          content: const Text("Password berhasil diubah!")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          dismissDirection: DismissDirection.none,
+          backgroundColor: Colors.redAccent,
+          showCloseIcon: true,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+          duration: const Duration(milliseconds: 2000),
+          content: Text(e.toString())));
+    } finally {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  Future<void> saveUserData() async {
+    try {
+      StorageLogic().saveData(
+          key: 'user-data',
+          value: jsonEncode({
+            'nama': _namaController.text,
+            'gender': _genderController.text,
+            'birthDate': _birthDateController.text,
+            'noHp': _noHpController.text
+          }),
+          type: String);
+      getUserData();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          dismissDirection: DismissDirection.none,
+          backgroundColor: Colors.green.shade700,
+          showCloseIcon: true,
+          shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+          duration: const Duration(milliseconds: 2000),
+          content: const Text("Data berhasil disimpan!")));
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +165,7 @@ class _UserPageState extends State<UserPage> {
           child: Column(
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Stack(
                     clipBehavior: Clip.none,
@@ -151,28 +270,32 @@ class _UserPageState extends State<UserPage> {
                     ],
                   ),
                   const SizedBox(width: 10),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Nama Pengguna",
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Card(
-                        color: Color.fromRGBO(255, 195, 73, 1),
-                        margin: EdgeInsets.zero,
-                        child: Padding(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                          child: Text(
-                            "@idnya",
-                            style: TextStyle(fontSize: 10, color: Colors.white),
-                          ),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _namaController.text,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                      )
-                    ],
+                        Card(
+                          color: const Color.fromRGBO(255, 195, 73, 1),
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 3),
+                            child: Text(
+                              "@$uid",
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.white),
+                            ),
+                          ),
+                        )
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -297,10 +420,12 @@ class _UserPageState extends State<UserPage> {
                                 final DateTime? picked = await showDatePicker(
                                     context: context,
                                     initialDate: DateTime.now(),
-                                    firstDate: DateTime(2015, 8),
-                                    lastDate: DateTime(2101));
-                                if (picked == null || picked == DateTime.now())
+                                    firstDate: DateTime(1945),
+                                    lastDate: DateTime(2100));
+                                if (picked == null ||
+                                    picked == DateTime.now()) {
                                   return;
+                                }
 
                                 setState(() {
                                   _birthDateController.value = TextEditingValue(
@@ -351,7 +476,7 @@ class _UserPageState extends State<UserPage> {
                         children: [
                           const Spacer(),
                           TextButton(
-                              onPressed: () {},
+                              onPressed: () => saveUserData(),
                               style: ButtonStyle(
                                 shape: MaterialStateProperty.all(
                                     const RoundedRectangleBorder(
@@ -408,7 +533,7 @@ class _UserPageState extends State<UserPage> {
                               padding: EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               child: Text(
-                                "Password",
+                                "Password Baru",
                                 style: TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w500),
                               ),
@@ -446,7 +571,7 @@ class _UserPageState extends State<UserPage> {
                               padding: EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               child: Text(
-                                "Konfirmasi Password",
+                                "Konfirmasi Password Baru",
                                 style: TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.w500),
                               ),
@@ -464,7 +589,7 @@ class _UserPageState extends State<UserPage> {
                         children: [
                           const Spacer(),
                           TextButton(
-                              onPressed: () {},
+                              onPressed: () => updateFirebasePassword(),
                               style: ButtonStyle(
                                 shape: MaterialStateProperty.all(
                                     const RoundedRectangleBorder(
@@ -475,12 +600,25 @@ class _UserPageState extends State<UserPage> {
                                 backgroundColor: MaterialStateProperty.all(
                                     const Color.fromRGBO(255, 195, 73, 1)),
                               ),
-                              child: const Row(
-                                children: [
-                                  Text("Ganti Password"),
-                                  SizedBox(width: 5),
-                                  Icon(Icons.key_rounded)
-                                ],
+                              child: Row(
+                                children: loading
+                                    ? const [
+                                        SizedBox(width: 50),
+                                        SizedBox(
+                                          height: 15,
+                                          width: 15,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        SizedBox(width: 50),
+                                      ]
+                                    : const [
+                                        Text("Ganti Password"),
+                                        SizedBox(width: 5),
+                                        Icon(Icons.key_rounded)
+                                      ],
                               )),
                         ],
                       ),
@@ -517,7 +655,10 @@ class _UserPageState extends State<UserPage> {
                       ),
                       ListTile(
                         onTap: () {
-                          return;
+                          setState(() {
+                            FirebaseAuth.instance.signOut();
+                            getUserData();
+                          });
                         },
                         iconColor: Colors.red,
                         textColor: Colors.red,
